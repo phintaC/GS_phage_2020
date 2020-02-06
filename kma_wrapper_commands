@@ -1,1 +1,0 @@
-kma_wrapper.pl -i R1_R2_singletons.csv -d 1,2,3,9,10 -t

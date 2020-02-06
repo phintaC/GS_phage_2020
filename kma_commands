@@ -1,0 +1,6 @@
+kma_wrapper.pl -i R1_R2_singletons.csv -d 1,2,3,9,10 -t
+qsub -V run_kvI_20190312.sh
+qsub -V run_genomic_20190912.sh
+qsub -V run_metalResistance_20181113.sh
+qsub -V run_functionalResistance_20181101.sh
+qsub -V run_ResFinder_20200125.sh
