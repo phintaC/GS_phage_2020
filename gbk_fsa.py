@@ -21,7 +21,6 @@ for file in os.listdir():
 				header = ">" + os.path.splitext(file)[0]
 
 				for line in infile:
-
 					# Extract sequence using stateful parsing
 					if line[:2] == "//":
 						seqFlag = False
