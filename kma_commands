@@ -4,3 +4,19 @@ qsub -V run_genomic_20190912.sh
 qsub -V run_metalResistance_20181113.sh
 qsub -V run_functionalResistance_20181101.sh
 qsub -V run_ResFinder_20200125.sh
+
+
+For the customized database (see Al-Shayeb et al. 2020) the supplementary GenBank files of the 364 determined phage
+ sequences (6 sequences were of unknown origin and therefore left out, another 4 sequences were plasmids and also left out) 
+ 352 sequences were included in the project. All sequences were of phage origin. 
+ The GenBank files of the 352 positively identified phage sequences were converted to FASTA files using a small home-made script
+ (see gbk_fsa.py) which took all files in a directory and extracted their sequences denoted by a header corresponding to the 
+ respective filename. Subsequently, the database was indexed for use in KMA. Indexing was done by the following call: 
+ 
+ kma_index -i phage_ecosystem_2020.fsa -o phage_ecosystem_2020
+ 
+ When the database has been indexed, the job script and files related to this were prepared. All files were copied from kvI_201903012
+ and edited accordingly, such that the samples would be mapped against the customised database. 
+ 
+
+qsub -V run_custom.sh
