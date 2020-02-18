@@ -30,7 +30,7 @@ for file in os.listdir():
 					if line[:6] == "ORIGIN":
 						seqFlag = True
 
-
+				# Write to FASTA file
 				with open(fastaFile_out, "a") as outfile:
 					outfile.write(header + "\n")
 					for i in range(0, len(seq), 60):
