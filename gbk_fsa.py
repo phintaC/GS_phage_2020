@@ -18,6 +18,7 @@ for file in os.listdir():
 
 			with open(file, "r") as infile:
 				sys.stdout.write("Processing file: {}\n".format(file))
+				# Setup header
 				header = ">" + os.path.splitext(file)[0]
 
 				for line in infile:
