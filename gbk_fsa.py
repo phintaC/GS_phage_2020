@@ -5,7 +5,7 @@ import os,sys
 os.chdir("/home/phine/Documents/DTU/thesis/databases/41586_2020_2007_MOESM6_ESM/genbank_genomes_SD-4")
 
 # Specifies outfile name 
-fastaFile_out = "/home/phine/Documents/DTU/thesis/global_phage_2020.fsa"
+fastaFile_out = "/home/phine/Documents/DTU/thesis/phage_ecosystem_2020.fsa"
 
 # Iterates over files in working directory
 for file in os.listdir():	
