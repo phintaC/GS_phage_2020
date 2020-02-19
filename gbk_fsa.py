@@ -5,7 +5,6 @@ import os,sys,re
 #os.chdir("/home/phine/Documents/DTU/thesis/databases/41586_2020_2007_MOESM6_ESM/genbank_genomes_SD-4")
 os.chdir(input("Enter absolute path of GenBank file directory: "))
 
-
 # Specifies outfile name and resets file
 fsa_out = input("Enter name of FASTA file: ") + ".fsa"
 with open(fsa_out, "w") as outfile:
