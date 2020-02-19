@@ -2,7 +2,7 @@
 import os,sys,re
 
 # Changes working directory to specified file directory 
-os.chdir(input("Enter absolute path of file directory: "))
+os.chdir(input("Enter absolute path of GenBank file directory: "))
 
 # Specifies outfile name and resets file (DANGER! Will overwrite files of same name in given directory)
 fsa_out = input("Enter name of FASTA file: ") + ".fsa"
