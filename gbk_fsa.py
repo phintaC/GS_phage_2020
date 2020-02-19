@@ -57,7 +57,6 @@ for file in os.listdir():
 
 		except AttributeError as err: 
 			sys.stderr.write("No sequence length reported for file:\t{}\n".format(file))
-			sys.stdout.write(locus)
 			sys.exit(1)
 
 		except IOError as err:
