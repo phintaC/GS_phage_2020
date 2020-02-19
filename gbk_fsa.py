@@ -8,7 +8,7 @@ os.chdir(input("Enter absolute path of file directory: "))
 
 # Specifies outfile name and resets file
 #fsa_out = "/home/phine/Documents/DTU/thesis/phage_ecosystem_2020.fsa"
-fsa_out = input("Enter name of FASTA file: ")
+fsa_out = input("Enter preferred name of FASTA file: ")
 outfile = open(fsa_out, "w")
 outfile.write("")
 outfile.close()
