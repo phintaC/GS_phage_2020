@@ -3,7 +3,6 @@ import os,sys,re
 
 # Changes working directory to file directory 
 os.chdir("/home/phine/Documents/DTU/thesis/databases/41586_2020_2007_MOESM6_ESM/genbank_genomes_SD-4")
-#os.chdir("/home/phine/Documents/DTU/thesis/databases/test")
 
 # Specifies outfile name and resets file
 fastaFile_out = "/home/phine/Documents/DTU/thesis/phage_ecosystem_2020.fsa"
