@@ -5,6 +5,8 @@ qsub -V run_metalResistance_20181113.sh
 qsub -V run_functionalResistance_20181101.sh
 qsub -V run_ResFinder_20200125.sh
 
+The -V flag: Declares that all environment variables in the qsub's command environment are to be exported to the batch job
+
 
 For the customised database (see Al-Shayeb et al. 2020) the supplementary GenBank files of the 364 determined sequences
 (6 sequences were of unknown origin and therefore left out, another 4 sequences were plasmids and also left out) 
