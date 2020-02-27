@@ -1,5 +1,5 @@
 #!usr/bin/env python3
-import os, sys, re
+import os, sys
 # Define extension tuple
 fqext = (".fq.gz", ".fastq.gz")
 
