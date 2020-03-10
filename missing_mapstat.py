@@ -4,7 +4,7 @@ import sys,os
 
 # Prompt for files etc.
 if len(sys.argv) != 3:
-	sys.stdout.write("Usage: missing_samples.py <file> <directory>\n")
+	sys.stdout.write("Usage: missing_mapstat.py <file> <directory>\n")
 	sys.exit(1)
 
 else:
