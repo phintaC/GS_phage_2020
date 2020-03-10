@@ -12,7 +12,7 @@ else:
 	directory = sys.argv[2]
 
 # Setup lists containing filenames in csv and in directory
-dir_files,lines = list(),list()
+dir_files = list()
 cwd = os.getcwd()
 
 try:
