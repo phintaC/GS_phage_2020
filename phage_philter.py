@@ -120,7 +120,7 @@ elif database == "imgvr":
 		
 		acc_file.close()
 		
-		# Questy header items against the UViG set; fast look-up
+		# Query header items against the UViG set; fast look-up
 		sys.stdout.write("Filtering bacterial phage UViGs from {}...\n".format((args.i).split("/")[-1]))
 		for i,item in enumerate(header):
 			if item in uvig_set:
