@@ -42,7 +42,7 @@ dataset = set()
 dataset.add((0,header[0]))
 
 #######################################################################################################
-# Use detected database to retrieve relvant information
+# Use detected database to retrieve relevant information
 if database == "virus" or database == "kvit":
 	sys.stdout.write("\"{}\" file is being filtered..\n".format(database))
 	
