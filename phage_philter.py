@@ -245,11 +245,10 @@ for line in infile:
 
 	for index in indices[0]: 
 		outfile_phage.write(line[index] + "\t")
+	outfile_phage.write("\n")
 	
 	for index in indices[1]: 
 		outfile_virus.write(line[index] + "\t")
-	
-	outfile_phage.write("\n")
 	outfile_virus.write("\n")
 
 
