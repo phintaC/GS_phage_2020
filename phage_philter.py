@@ -37,33 +37,42 @@ except IOError as err:
 	sys.exit(1)
 
 #######################################################################################################
-# Acquire column names and index for row names ([0]) 
+# Acquire column names and index for row ([0]) 
 header = (infile.readline().rstrip()).split(delim)
-dataset = set() # set to store tuple of phages
-virusset = set() # set to store tuple of other viruses
-dataset.add((0,header[0]))
-virusset.add((0,header[0]))
+phage_list = list() # List storing index of phages
+virus_list = list() # List storing index of other viruses
+phage_list.append(0) # Add "sample" to phageset, automatically added to virus_list
+
 
 #######################################################################################################
-# Use detected database to retrieve relvant information
+# Use detected database to retrieve relevant information
 if database == "virus" or database == "kvit":
 	sys.stdout.write("\"{}\" file is queried for filtering..\n".format(database))
 	
-	genus_list = set()
-	identity = str.maketrans("","", "\"'[]")
-	
+#	genus_list = set()
+#	identity = str.maketrans("","", "\"'[]") # used to clean names
+
 	# Detects taxonomical level
 	if taxon == "id": # Strain level 
 		sys.stdout.write("Detected strain level file... Filtering on accession numbers.\n")
 		 
+		if args.refseq is not None:
+			ncfile = open(args.refseq, "r")
+		else: 
+			sys.stderr.write("RefSeq accession numbers required for strain detection...\nTerminating!")
+			sys.exit(1)
 
+		accessions = set()
+		# The file from RefSeq contains only accession numbers (NC_XXXX)
+		for line in ncfile:
+			accession_num = (line.rstrip()).split()[0] 
+			accessions.add(accession_num)
+		ncfile.close()
 
 		if database == "kvit":
 			try:
 				if args.genbank is not None:
 					gbkfile = open(args.genbank, "r")
-				if args.refseq is not None:
-					ncfile = open(args.refseq, "r")
 				else:
 					sys.stdout.write("Both RefSeq and GenBank accession numbers required for strain detection...\nTerminating!")
 					sys.exit(1)
@@ -72,9 +81,6 @@ if database == "virus" or database == "kvit":
 				sys.stderr.write("Error while opening file: {}\n".format(str(err)))
 				sys.exit(1)
 
-
-			# Make sets of GenBank accession and RefSeq accessions
-			accessions = set()
 			# The file from GenBank contains metadata
 			for line in gbkfile:
 				contents = line.strip().split(delim)
@@ -82,84 +88,62 @@ if database == "virus" or database == "kvit":
 				accessions.add(accession_num)
 			gbkfile.close()
 			
-			# The file from RefSeq contains only accession numbers 
-			for line in ncfile:
-				accession_num = (line.rstrip()).split()[0] 
-				accessions.add(accession_num)
-			ncfile.close()
-		
-
-
-		elif database =="virus":
-			try:
-				ncfile = open(args.refseq, "r")
-
-			except IOError as err:
-				sys.stderr.write("Error while opening {}: {}\n".format((args.accessory).split("/")[-1], str(err)))
-				sys.exit(1)
-
-			accessions = set()
-			for line in ncfile:
-				accession_num = (line.rstrip()).split()[0]
-				accessions.add(accession_num)
-			ncfile.close()
-
 
 		# Compare inputs
 		for i,item in enumerate(header):
-			item = item.split(".")[0]
+			item = item.split(".")[0] # Discard the accession version
 			if item in accessions:
 				#print("Phage: ", item)
-				dataset.add((i,item))
+				phage_list.append(i)
 			elif item not in accessions:
 				#print("Not phage: ", item)
-				virusset.add((i,item))
+				virus_list.append(i)
 
-	# Not used in project
-	if taxon == "species":
-		sys.stdout.write("Detected species level file...\n")
-
-		# for hte vira
-		if args.accessory is not None:
-			# Extracts all genera (and other stuff) from a taxonomy file. 
-			sys.stdout.write("Trying to find phages from bacterial genera...\n")
-			try:
-				taxfile = open(args.accessory, "r")
-			except IOError as err:
-				sys.stderr.write("Error while opening file: {}\n".format(str(err)))
-				sys.exit(1)
-			
-			# Only difference is naming of species
-			if database == "virus":
-				for line in taxfile:
-					genus_virus = (line.split(" ")[0]).translate(identity) + " virus"
-					genus_list.add(genus_virus)
-			
-			elif database == "kvit":
-				for line in taxfile:
-					genus_virus = (line.split(" ")[0]).translate(identity) + "virus"
-					genus_list.add(genus_virus)
-
-		for i,item in enumerate(header):
-			# Check for phage in entry
-			for phage in phages:
-				if phage in item:
-					dataset.add((i,item))
-		
-			# Check for bacterial "<genus> virus" in entry 
-			for genus in genus_list:
-				if genus in item:
-					dataset.add((i,item))
-
-
-	# Not used in project
-	if taxon == "family":
-		sys.stdout.write("Detected family level file...\n")
-
-		for i,item in enumerate(header):
-			for phage_fam in phage_families:
-				if phage_fam in item:
-					dataset.add((i,item))
+#	# Not used in project
+#	if taxon == "species":
+#		sys.stdout.write("Detected species level file...\n")
+#
+#		# for hte vira
+#		if args.accessory is not None:
+#			# Extracts all genera (and other stuff) from a taxonomy file. 
+#			sys.stdout.write("Trying to find phages from bacterial genera...\n")
+#			try:
+#				taxfile = open(args.accessory, "r")
+#			except IOError as err:
+#				sys.stderr.write("Error while opening file: {}\n".format(str(err)))
+#				sys.exit(1)
+#			
+#			# Only difference is naming of species
+#			if database == "virus":
+#				for line in taxfile:
+#					genus_virus = (line.split(" ")[0]).translate(identity) + " virus"
+#					genus_list.add(genus_virus)
+#			
+#			elif database == "kvit":
+#				for line in taxfile:
+#					genus_virus = (line.split(" ")[0]).translate(identity) + "virus"
+#					genus_list.add(genus_virus)
+#
+#		for i,item in enumerate(header):
+#			# Check for phage in entry
+#			for phage in phages:
+#				if phage in item:
+#					phage_list.append(i)
+#		
+#			# Check for bacterial "<genus> virus" in entry 
+#			for genus in genus_list:
+#				if genus in item:
+#					phage_list.append(i)
+#
+#
+#	# Not used in project
+#	if taxon == "family":
+#		sys.stdout.write("Detected family level file...\n")
+#
+#		for i,item in enumerate(header):
+#			for phage_fam in phage_families:
+#				if phage_fam in item:
+#					phage_list.append(i)
 
 
 #######################################################################################################
@@ -192,17 +176,18 @@ elif database == "imgvr":
 		
 		acc_file.close()
 		
-		# Query header items against the UViG set; fast look-up
+		# Query header items against the UViG set; fast lineook-up
 		sys.stdout.write("Filtering bacterial phage UViGs from {}...\n".format((args.i).split("/")[-1]))
 		for i,item in enumerate(header):
 			if item in uvig_set:
-				dataset.add((i,item))
+				phage_list.append(i)
 			else:
-				virusset.add((i,item))
+				virusset.append(i)
 
 #######################################################################################################
 # Define output name
-filter_path = os.path.dirname(args.i) + "/filtered/"
+#filter_path = os.path.dirname(args.i) + "/filtered/"
+filter_path = os.getcwd() + "/filtered/"
 if not os.path.exists(filter_path):
 	os.mkdir(filter_path)
 
@@ -217,40 +202,18 @@ outfile_phage = open(outname_phage, "w+")
 outfile_virus = open(outname_virus, "w+")
 
 #######################################################################################################
-# Create lists to store column names and indices
-colnames = [[] for i in range(2)]
-indices = [[] for i in range(2)]
-
-# Fill lists with data
-# Phages; at index = 0
-for tup in sorted(dataset):
-	indices[0].append(tup[0])
-	colnames[0].append(tup[1])
-dataset.clear()
-
-# Other viruses; at index = 1
-for tup in sorted(virusset):
-	indices[1].append(tup[0])
-	colnames[1].append(tup[1])
-virusset.clear()
-
-# Write first row to file containing phage information
-outfile_phage.write("\t".join(colnames[0]) + "\n")
-outfile_virus.write("\t".join(colnames[1]) + "\n")
-colnames.clear()
-
-# Write remaining data to file
+# Write data to file
+infile.seek(0)
 for line in infile:
 	line = line.rstrip().split("\t")
 
-	for index in indices[0]: 
+	for index in phage_list: 
 		outfile_phage.write(line[index] + "\t")
 	outfile_phage.write("\n")
 	
-	for index in indices[1]: 
+	for index in virus_list: 
 		outfile_virus.write(line[index] + "\t")
 	outfile_virus.write("\n")
-
 
 infile.close()
 outfile_phage.close()
