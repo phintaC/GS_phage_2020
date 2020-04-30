@@ -1,0 +1,836 @@
+
+title: 'Metagenomics analysis workshop'
+author: "Shinny Pimlapas Leekitcharoenphon"
+date: "December 2019"
+output: 
+  html_document:
+    theme: sandstone
+    code_folding: hide
+
+
+```{r init, message=FALSE}
+knitr::opts_chunk$set(cache = TRUE, autodep = TRUE, warning=FALSE, message=FALSE)
+# install.packages("tidyverse")
+# install.packages("lubridate")
+# install.packages("reshape2")
+# install.packages("ggplot2")
+# install.packages("RColorBrewer")
+# install.packages("plyr")
+# install.packages("grid")
+# install.packages("pheatmap")
+# install.packages("ape")
+# install.packages("vegan")
+# install.packages("gplots")
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# BiocManager::install("ComplexHeatmap")
+install.packages("circlize")
+
+
+library(tidyverse)
+library(lubridate)
+library(reshape2)
+library(ggplot2)
+library(RColorBrewer)
+library(plyr)
+library(grid)
+library(pheatmap)
+library(ape)
+library(vegan)
+
+theme_set(theme_bw())
+```
+## 1. Mapped_summary - Fragment count - all {#E2A}
+```{r Mapped summary fragment count, eval=TRUE}
+pdf('pilot_fragmentCount.pdf',onefile=TRUE, width=15, height=10)
+
+# Read data to table
+data = read.table("pilot_summary_fragmentCount.csv", sep='\t', dec='.', header=TRUE, check.names=FALSE)
+
+# Defining key names
+names(data) <- c("sample", "region", "Virus: phages", "Virus: other viruses", "IMG/VR: phages", "IMG/VR: other viruses", "KVIT: phages", "KVIT: other viruses", "Huge phages", "Bacteria") 
+
+# Colour pallette
+pal <- colorRampPalette(brewer.pal(7,"Paired"))(7) 
+colors_ms = c(pal, "grey") # Bacteria in gray
+
+# Reshape data
+data_m = melt(data)
+
+# Calculate mean
+# data_m.mean = data_m %>%
+  # group_by(region) %>%
+  # mutate(ymean = mean(value))
+
+# Plot data with bars
+ggplot(data=data_m,aes(x=sample, y=value, fill=variable)) + 
+  geom_bar(stat = "identity")+scale_fill_manual(values=colors_ms, name="Dataset") +
+  ylab("Fragment count")+xlab("") +
+  ggtitle("Fragment count summary - all") +
+  theme(plot.title = element_text(lineheight=.8, face="bold", hjust = 0.5)) +
+  theme_dark()+theme(axis.text.x = element_text(size=7, angle=90, hjust=0.75, vjust=1)) +
+  facet_grid(.~region,scales="free",space="free") +
+  theme(strip.text.x = element_text(size=8, angle = 90))
+
+dev.off()
+
+#To print on screen
+ggplot(data=data_m, aes(x=sample, y=value, fill=variable)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_manual(values=colors_ms, name="Data") + 
+  ylab("Fragment count")+xlab("") + 
+  ggtitle("Fragment count summary - all") + 
+  theme(plot.title = element_text(lineheight=.8, face="bold", hjust = 0.5)) + 
+  theme_dark() + 
+  theme(axis.text.x = element_text(size=7, angle=90, hjust=0.75, vjust=1)) + 
+  facet_grid(.~region,scales="free",space="free") + 
+  theme(strip.text.x = element_text(size=8, angle = 90))
+  #geom_errorbar(data=data_m.mean, aes(x=sample, ymax = ymean, ymin = ymean),size=0.5, linetype = "longdash", inherit.aes = F, width = 0.5)
+
+# Calculate mean and SD
+mean <- mean(data_m$value)
+```
+
+## 2. Mapped_summary - Mapped fragment fraction - all {#E2A}
+```{r Mapped summary read abundance, eval=TRUE}
+pdf('pilot_relativeReadAbundance.pdf', onefile=TRUE,width=15, height=10)
+data = read.table("datasets/pilot_summary_relabundance.csv", sep='\t', dec='.', header=TRUE, check.names=FALSE)
+
+names(data) <- c("sample","region","Virus: phages", "Virus: other viruses", "IMG/VR: phages", "IMG/VR: other viruses", "KVIT: phages", "KVIT: other viruses", "Huge phages", "Bacteria") ## Dataset renaming
+
+pal <- colorRampPalette(brewer.pal(7,"Paired"))(7) ## Creating pallette for different datasets
+colors_ms = c(pal, "grey") # Bacteria is grey
+data_m = melt(data) # Reshape the data
+
+
+myvars <- names(data) %in% c("sample","region","KVIT: phages")
+
+# Find the mean relative abundance 
+num.data <- t(data[!myvars])
+mean_rows <- apply(num.data,1,mean)
+mean <- mean(mean_rows)
+mean_rows
+sd_rows <- apply(num.data,1,sd)
+sd_rows
+
+# plot with bars, where max is 100% #
+ggplot(data=data_m, 
+       aes(x=sample, 
+           y=value, 
+           fill=variable)) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_manual(values=colors_ms, 
+                    name="Dataset") + 
+  ylab("Mapped fragment fraction (%)") + 
+  xlab("") + 
+  ggtitle("Relative abundance summary\n2016") + 
+  theme(plot.title = element_text(lineheight=.8, 
+                                  face="bold", 
+                                  hjust = 0.5)) + 
+  theme_dark() + 
+  theme(axis.text.x = element_text(size=7, 
+                                   angle=90, 
+                                   hjust=0.75, 
+                                   vjust=1)) + 
+  facet_grid(.~variable) + 
+  facet_grid(.~region,
+             scales="free",
+             space="free") + 
+  theme(strip.text.x = element_text(size=8, angle = 90))
+dev.off()
+
+ggplot(data=data_m, aes(x=sample, y=value, fill=variable))+geom_bar(stat = "identity")+scale_fill_manual(values=colors_ms, name="Dataset")+ylab("Mapped fragment fraction  (%)")+xlab("")+ggtitle("Relative abundance summary")+theme(plot.title = element_text(lineheight=.8, face="bold", hjust = 0.5))+theme_dark()+theme(axis.text.x = element_text(size=7, angle=90, hjust=0.75, vjust=1))+facet_grid(.~variable)+facet_grid(.~region,scales="free",space="free")+theme(strip.text.x = element_text(size=8, angle = 90))
+
+```
+## 1. Mapped_summary - Fragment count summary {#E2A}
+```{r Mapped summary readCount, eval=TRUE}
+pdf('pilot_fragmentCount_viruses.pdf',onefile=TRUE, width=15, height=10)
+
+# Data load
+data = read.table("datasets/summary_fragmentCount_viruses.annotated.csv", sep='\t', dec='.', header=TRUE, check.names=FALSE)
+
+# Key labels
+names(data) <- c("sample","region","Virus: phages", "Virus: other viruses", "IMG/VR: phages", "IMG/VR: other viruses", "KVIT: phages", "KVIT: other viruses", "Huge phages")
+
+# Colour pallette
+pal <- colorRampPalette(brewer.pal(7,"Paired"))(7) 
+data_m = melt(data) # Shape the data
+
+# plot with bars #
+ggplot(data=data_m, aes(x=sample, y=value, fill=variable))+geom_bar(stat = "identity")+scale_fill_manual(values=pal, name="Data")+ylab("Fragment count")+xlab("")+ggtitle("Fragment count summary - phages and viruses\n2016")+theme(plot.title = element_text(lineheight=.8, face="bold", hjust = 0.5))+theme_dark()+theme(axis.text.x = element_text(size=7, angle=90, hjust=0.75, vjust=1))+facet_grid(.~region,scales="free",space="free")+theme(strip.text.x = element_text(size=8, angle = 90))
+dev.off()
+
+#To print on screen
+ggplot(data=data_m, aes(x=sample, y=value, fill=variable))+geom_bar(stat = "identity")+scale_fill_manual(values=pal, name="Data")+ylab("Fragment count")+xlab("")+ggtitle("Fragment count summary - phages and viruses\n2016")+theme(plot.title = element_text(lineheight=.8, face="bold", hjust = 0.5))+theme_dark()+theme(axis.text.x = element_text(size=7, angle=90, hjust=0.75, vjust=1))+facet_grid(.~region,scales="free",space="free")+theme(strip.text.x = element_text(size=8, angle = 90))
+
+```
+
+## 2. Mapped_summary - Mapped fragment fraction - summary {#E2A}
+```{r Mapped summary read abundance, eval=TRUE}
+pdf('pilot_relativeReadAbundance_viruses.pdf', onefile=TRUE,width=15, height=10)
+
+data = read.table("summary_relabundance_viruses.annotated.csv", sep='\t', dec='.', header=TRUE, check.names=FALSE)
+
+names(data) <- c("sample","region", "Virus: phages", "Virus: other viruses", "IMG/VR: phages", "IMG/VR: other viruses", "KVIT: phages", "KVIT: other viruses", "Huge phages") ## Files which were ran in fullmode
+
+
+
+myvars <- names(data) %in% c("sample","region","KVIT: phages")
+
+# Find the mean relative abundance 
+num.data <- data[!myvars]
+mean_rows <- apply(num.data,1,mean)
+mean <- mean(mean_rows)
+sd <- sd(mean_rows)
+
+# Colouring pallette
+pal <- colorRampPalette(brewer.pal(7,"Paired"))(7)
+
+# Reshape data
+data_m = melt(data)
+
+# plot with bars, where max is 100% #
+ggplot(data=data_m, aes(x=sample, y=value, fill=variable))+geom_bar(stat = "identity")+scale_fill_manual(values=pal, name="Files")+ylab("Fraction of fragments mapped to databases (%)")+xlab("")+ggtitle("Relative abundance summary - phages and viruses\n2016")+theme(plot.title = element_text(lineheight=.8, face="bold", hjust = 0.5))+theme_dark()+theme(axis.text.x = element_text(size=7, angle=90, hjust=0.75, vjust=1))+facet_grid(.~region,scales="free",space="free")+theme(strip.text.x = element_text(size=8, angle = 90))
+
+dev.off()
+
+ggplot(data=data_m, aes(x=sample, y=value, fill=variable))+geom_bar(stat = "identity")+scale_fill_manual(values=pal, name="Files")+ylab("Mapped fragment fraction (%)")+xlab("")+ggtitle("Relative abundance summary - phages and viruses\n2016")+theme(plot.title = element_text(lineheight=.8, face="bold", hjust = 0.5))+theme_dark()+theme(axis.text.x = element_text(size=7, angle=90, hjust=0.75, vjust=1))+facet_grid(.~region,scales="free",space="free")+theme(strip.text.x = element_text(size=8, angle = 90))
+
+
+```
+
+## 3.Principal Coordinate Analysis (PCoA) - virus phages - relative abundance ##
+```{r PCoA, eval=TRUE}
+# Read input 
+data = read.table("pilot_virus_id_relabundance.phages.csv", sep="\t", dec = '.',header=TRUE, check.names = F)
+
+# Exclude non-numerical column; region
+myvars <- names(data) %in% c("region") 
+data_phage <- data[!myvars]
+
+# Transpose dataframe
+phage <- data.frame(data_phage[,3:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+
+#Calculate dissimilarity matrix
+phage2 <- vegdist(decostand(phage ,method = "hellinger"), dist="bray")
+
+# Transpose dataframe
+label <- data.frame(data_phage[,2:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+# Get region label from dataframe
+metadata = data.frame(sample=rownames(label), label, group=c(rep("Africa",13), rep("Asia",9), rep("Europe",31), rep("Middle East",3), rep("North America",14), rep("Oceania",3), rep("South America",6)))
+
+# PCoA plot with Ellipse
+# set1 color: #E41A1C: Red - Africa; #377EB8: Blue - Asia; #4DAF4A: Green - Europe; #984EA3: Purple - Middle East; #FF7F00: Orange - North America; #FFFF33: Yellow - Oceania; #A65628: Brown - South America
+betadisp.all <- betadisper(phage2, data$region, add=F)
+
+eigenperc <- round(as.vector(eigenvals(betadisp.all) / sum(eigenvals(betadisp.all)[eigenvals(betadisp.all)>0]))*100, digits=2)
+
+num_var = length(unique(data$region))
+
+# Setup output and plot to file
+pdf('PCoA_virus.phage_composition.pdf',onefile=TRUE)
+
+plot(betadisp.all, 
+     ellipse = T, 
+     hull = F, 
+     col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), 
+     pch=rep(16,num_var), 
+     lty=1, 
+     lwd=2, 
+     segments=T, 
+     seg.col="black", 
+     label=T, 
+     cex=1.5, 
+     main="PCoA: virus -  phages\n2016", 
+     seg.lty=2, 
+     seg.lwd=1,
+     xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), 
+     ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+dev.off()
+
+# Plot to screen
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: virus - phages\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+```
+## 3.Principal Component Analysis (PCA) - virus phages - fragmentCount ##
+```{r PCA, eval=TRUE}
+# install.packages("easyCODA")
+library(easyCODA)
+
+data <- read.table("datasets/pilot_virus_id_fragmentCount.phages.csv",sep="\t",dec=".",header=T)
+phage.data <- data.frame(data[,3:ncol(data)], row.names=data[,1], check.names=FALSE)
+
+phage.clr <- CLR(phage.data)
+```
+
+## 4.Principal Coordinate Analysis (PCoA) - virus other virus ##
+```{r PCoA, eval=TRUE}
+# Read input 
+data = read.table("datasets/pilot_virus_id_relabundance.virus.csv", sep="\t", dec = '.',header=TRUE, check.names = F)
+
+# Exclude non-numerical column; region
+myvars <- names(data) %in% c("region") 
+data_phage <- data[!myvars]
+
+# Transpose dataframe
+phage <- data.frame(data_phage[,3:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+
+#Calculate dissimilarity matrix
+phage2 <- vegdist(decostand(phage ,method = "hellinger"), dist="bray")
+
+# Read columns for continent labels (data frame is sorted by second column: region)
+data_label <- data[!myvars]
+
+# Transpose dataframe
+label <- data.frame(data_label[,2:ncol(data_label)], row.names=data_label[,1], check.names=FALSE) 
+
+# Get region label from dataframe
+metadata = data.frame(sample=rownames(label), label, group=c(rep("Africa",13), rep("Asia",9), rep("Europe",31), rep("Middle East",3), rep("North America",14), rep("Oceania",3), rep("South America",6))) 
+
+## PCoA plot with Ellipse
+## set1 color "#E41A1C" "#377EB8" "#4DAF4A" "#984EA3" "#FF7F00" "#FFFF33" "#A65628"
+betadisp.all <- betadisper(phage2, data$region, add=F)
+
+eigenperc <- round(as.vector(eigenvals(betadisp.all) / sum(eigenvals(betadisp.all)[eigenvals(betadisp.all)>0]))*100, digits=2)
+
+num_var = length(unique(data$region))
+
+# Setup output and plot to file
+pdf('PCoA_virus.virus_composition.pdf',onefile=TRUE)
+
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: virus - other viruses\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+dev.off()
+
+# Plot to screen
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: virus -  other viruses\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+```
+
+## 4.Principal Coordinate Analysis (PCoA) - virus other virus ##
+```{r PCoA, eval=TRUE}
+# Read input 
+data = read.table("pilot_virus_id_CLR.virus.csv", sep="\t", dec = '.',header=TRUE, check.names = F)
+
+# Exclude non-numerical column; region
+myvars <- names(data) %in% c("region") 
+data_phage <- data[!myvars]
+
+# Transpose dataframe
+phage <- data.frame(data_phage[,3:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+
+#Calculate dissimilarity matrix
+phage2 <- vegdist(decostand(phage ,method = "hellinger"), dist="bray", na.rm=T)
+
+# Read columns for continent labels (data frame is sorted by second column: region)
+data_label <- data[!myvars]
+
+# Transpose dataframe
+label <- data.frame(data_label[,2:ncol(data_label)], row.names=data_label[,1], check.names=FALSE) 
+
+# Get region label from dataframe
+metadata = data.frame(sample=rownames(label), label, group=c(rep("Africa",13), rep("Asia",9), rep("Europe",31), rep("Middle East",3), rep("North America",14), rep("Oceania",3), rep("South America",6))) 
+
+## PCoA plot with Ellipse
+## set1 color "#E41A1C" "#377EB8" "#4DAF4A" "#984EA3" "#FF7F00" "#FFFF33" "#A65628"
+betadisp.all <- betadisper(phage2, data$region, add=F)
+
+eigenperc <- round(as.vector(eigenvals(betadisp.all) / sum(eigenvals(betadisp.all)[eigenvals(betadisp.all)>0]))*100, digits=2)
+
+num_var = length(unique(data$region))
+
+# Setup output and plot to file
+pdf('PCoA_virus_CLR.virus_composition.pdf',onefile=TRUE)
+
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA (CLR): virus - other viruses\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+dev.off()
+
+# Plot to screen
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: virus -  other viruses\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+```
+
+
+## 5.Principal Coordinate Analysis (PCoA) - IMG/VR phages ##
+```{r PCoA, eval=TRUE}
+# Read input 
+data = read.table("datasets/pilot_imgvr_id_relabundance.phages.csv", sep="\t", dec = '.',header=TRUE, check.names = F)
+
+# Exclude non-numerical column; region
+myvars <- names(data) %in% c("region") 
+data_phage <- data[!myvars]
+
+# Transpose dataframe
+phage <- data.frame(data_phage[,3:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+# Calculate dissimilarity matrix
+phage2 <- vegdist(decostand(phage ,method = "hellinger"), dist="bray")
+
+# Transpose dataframe
+label <- data.frame(data_phage[,2:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+# Get region label from dataframe
+metadata = data.frame(sample=rownames(label), label, group=c(rep("Africa",13), rep("Asia",9), rep("Europe",31), rep("Middle East",3), rep("North America",14), rep("Oceania",3), rep("South America",6))) 
+
+## PCoA plot with Ellipse
+## set1 color "#E41A1C" "#377EB8" "#4DAF4A" "#984EA3" "#FF7F00" "#FFFF33" "#A65628"
+betadisp.all <- betadisper(phage2, data$region, add=F)
+
+eigenperc <- round(as.vector(eigenvals(betadisp.all) / sum(eigenvals(betadisp.all)[eigenvals(betadisp.all)>0]))*100, digits=2)
+
+num_var = length(unique(data$region))
+
+# Setup output and plot to file
+pdf('PCoA_imgvr.phage_composition.pdf',onefile=TRUE)
+
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: IMG/VR -  phages\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+dev.off()
+
+# Plot to screen
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: IMG/VR - phages\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+```
+## 6.Principal Coordinate Analysis (PCoA) - IMG/VR other virus ##
+```{r PCoA, eval=TRUE}
+# Read input 
+data = read.table("datasets/pilot_imgvr_id_relabundance.virus.csv", sep="\t", dec = '.',header=TRUE, check.names = F)
+
+# Exclude non-numerical column; region
+myvars <- names(data) %in% c("region") 
+data_phage <- data[!myvars]
+
+# Transpose dataframe
+phage <- data.frame(data_phage[,3:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+#Calculate dissimilarity matrix
+phage2 <- vegdist(decostand(phage ,method = "hellinger"), dist="bray")
+
+# Transpose dataframe
+label <- data.frame(data_phage[,2:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+# Get region label from dataframe
+metadata = data.frame(sample=rownames(label), label, group=c(rep("Africa",13), rep("Asia",9), rep("Europe",31), rep("Middle East",3), rep("North America",14), rep("Oceania",3), rep("South America",6))) 
+
+## PCoA plot with Ellipse
+## set1 color "#E41A1C" "#377EB8" "#4DAF4A" "#984EA3" "#FF7F00" "#FFFF33" "#A65628"
+betadisp.all <- betadisper(phage2, data$region, add=F)
+
+eigenperc <- round(as.vector(eigenvals(betadisp.all) / sum(eigenvals(betadisp.all)[eigenvals(betadisp.all)>0]))*100, digits=2)
+
+num_var = length(unique(data$region))
+
+# Setup output and plot to file
+pdf('PCoA_imgvr.virus_composition.pdf',onefile=TRUE)
+
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: IMG/VR - other viruses\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+dev.off()
+
+# Plot to screen
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: IMG/VR -  other viruses\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+```
+## 7.Principal Coordinate Analysis (PCoA) - Huge phages ##
+```{r PCoA, eval=TRUE}
+# Read input 
+data = read.table("datasets/pilot_custom_id_relabundance.csv", sep="\t", dec = '.',header=TRUE, check.names = F)
+
+# Exclude non-numerical column; region
+myvars <- names(data) %in% c("region") 
+data_phage <- data[!myvars]
+
+# Transpose dataframe
+phage <- data.frame(data_phage[,3:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+
+#Calculate dissimilarity matrix
+phage2 <- vegdist(decostand(phage ,method = "hellinger"), dist="bray")
+
+# Transpose dataframe
+label <- data.frame(data_phage[,2:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+# Get region label from dataframe
+metadata = data.frame(sample=rownames(label), label, group=c(rep("Africa",13), rep("Asia",9), rep("Europe",31), rep("Middle East",3), rep("North America",14), rep("Oceania",3), rep("South America",6)))
+
+# PCoA plot with Ellipse
+# set1 color: #E41A1C: Red - Africa; #377EB8: Blue - Asia; #4DAF4A: Green - Europe; #984EA3: Purple - Middle East; #FF7F00: Orange - North America; #FFFF33: Yellow - Oceania; #A65628: Brown - South America
+betadisp.all <- betadisper(phage2, data$region, add=F)
+
+eigenperc <- round(as.vector(eigenvals(betadisp.all) / sum(eigenvals(betadisp.all)[eigenvals(betadisp.all)>0]))*100, digits=2)
+
+num_var = length(unique(data$region))
+
+# Setup output and plot to file
+pdf('PCoA_huge_phage_composition.pdf',onefile=TRUE)
+
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: huge phages\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+dev.off()
+
+# Plot to screen
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: Huge phages\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+```
+
+## 8.Principal Coordinate Analysis (PCoA) - Bacteria ##
+```{r PCoA, eval=TRUE}
+# Read input 
+data = read.table("datasets/pilot_bacteria_species_name_relabundance.csv", sep="\t", dec = '.',header=TRUE, check.names = F)
+
+# Exclude non-numerical column; region
+myvars <- names(data) %in% c("region") 
+data_bac <- data[!myvars]
+
+# Transpose dataframe
+phage <- data.frame(data_bac[,3:ncol(data_bac)], row.names=data_bac[,1], check.names=FALSE) 
+
+#Calculate dissimilarity matrix
+phage2 <- vegdist(decostand(phage ,method = "hellinger"), dist="bray")
+
+# Transpose dataframe
+label <- data.frame(data_bac[,2:ncol(data_bac)], row.names=data_bac[,1], check.names=FALSE) 
+
+# Get region label from dataframe
+metadata = data.frame(sample=rownames(label), label, group=c(rep("Africa",13), rep("Asia",9), rep("Europe",31), rep("Middle East",3), rep("North America",14), rep("Oceania",3), rep("South America",6))) 
+
+## PCoA plot with Ellipse
+## set1 color "#E41A1C" "#377EB8" "#4DAF4A" "#984EA3" "#FF7F00" "#FFFF33" "#A65628"
+betadisp.all <- betadisper(phage2, data$region, add=F)
+
+eigenperc <- round(as.vector(eigenvals(betadisp.all) / sum(eigenvals(betadisp.all)[eigenvals(betadisp.all)>0]))*100, digits=2)
+
+num_var = length(unique(data$region))
+
+# Setup output and plot to file
+pdf('PCoA_bacteria.bacteria_composition.pdf',onefile=TRUE)
+
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: bacteria\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+dev.off()
+
+# Plot to screen
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: bacteria\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+```
+## 9.Principal Coordinate Analysis (PCoA) - all phages ##
+```{r PCoA, eval=TRUE}
+# Read input 
+data = read.table("datasets/pilot_phages.concatenated.csv", sep="\t", dec = '.',header=TRUE, check.names = F)
+
+# Exclude non-numerical column; region
+myvars <- names(data) %in% c("region") 
+data_phage <- data[!myvars]
+
+# Transpose dataframe
+phage <- data.frame(data_phage[,3:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+#Calculate dissimilarity matrix
+phage2 <- vegdist(decostand(phage ,method = "hellinger"), dist="bray")
+
+# Transpose dataframe
+label <- data.frame(data_phage[,2:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+# Get region label from dataframe
+metadata = data.frame(sample=rownames(label), label, group=c(rep("Africa",13), rep("Asia",9), rep("Europe",31), rep("Middle East",3), rep("North America",14), rep("Oceania",3), rep("South America",6))) 
+
+## PCoA plot with Ellipse
+## set1 color "#E41A1C" "#377EB8" "#4DAF4A" "#984EA3" "#FF7F00" "#FFFF33" "#A65628"
+betadisp.all <- betadisper(phage2, data$region, add=F)
+
+eigenperc <- round(as.vector(eigenvals(betadisp.all) / sum(eigenvals(betadisp.all)[eigenvals(betadisp.all)>0]))*100, digits=2)
+
+num_var = length(unique(data$region))
+
+# Setup output and plot to file
+pdf('PCoA_all_phages_composition.pdf',onefile=TRUE)
+
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: all phages\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+dev.off()
+
+# Plot to screen
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: all phages\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+```
+
+## 10.Principal Coordinate Analysis (PCoA) - all other viruses ##
+```{r PCoA, eval=TRUE}
+# Read input 
+data = read.table("datasets/pilot_virus.concatenated.csv", sep="\t", dec = '.',header=TRUE, check.names = F)
+
+# Exclude non-numerical column; region
+myvars <- names(data) %in% c("region") 
+data_phage <- data[!myvars]
+
+# Transpose dataframe
+phage <- data.frame(data_phage[,3:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+#Calculate dissimilarity matrix
+phage2 <- vegdist(decostand(phage ,method = "hellinger"), dist="bray")
+
+# Transpose dataframe
+label <- data.frame(data_phage[,2:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+# Get region label from dataframe
+metadata = data.frame(sample=rownames(label), label, group=c(rep("Africa",13), rep("Asia",9), rep("Europe",31), rep("Middle East",3), rep("North America",14), rep("Oceania",3), rep("South America",6))) 
+
+## PCoA plot with Ellipse
+## set1 color "#E41A1C" "#377EB8" "#4DAF4A" "#984EA3" "#FF7F00" "#FFFF33" "#A65628"
+betadisp.all <- betadisper(phage2, data$region, add=F)
+
+eigenperc <- round(as.vector(eigenvals(betadisp.all) / sum(eigenvals(betadisp.all)[eigenvals(betadisp.all)>0]))*100, digits=2)
+
+num_var = length(unique(data$region))
+
+# Setup output and plot to file
+pdf('PCoA_all_other_viruses_composition.pdf',onefile=TRUE)
+
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: all other viruses\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+dev.off()
+
+# Plot to screen
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: all other viruses\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+```
+
+## 10.Principal Coordinate Analysis (PCoA) - all other viruses excl KVIT##
+```{r PCoA, eval=TRUE}
+# Read input 
+data = read.table("datasets/pilot_excl-kvit.virus.csv", sep="\t", dec = '.',header=TRUE, check.names = F)
+
+# Exclude non-numerical column; region
+myvars <- names(data) %in% c("region") 
+data_phage <- data[!myvars]
+
+# Transpose dataframe
+phage <- data.frame(data_phage[,3:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+#Calculate dissimilarity matrix
+phage2 <- vegdist(decostand(phage ,method = "hellinger"), dist="bray")
+
+# Transpose dataframe
+label <- data.frame(data_phage[,2:ncol(data_phage)], row.names=data_phage[,1], check.names=FALSE) 
+
+# Get region label from dataframe
+metadata = data.frame(sample=rownames(label), label, group=c(rep("Africa",13), rep("Asia",9), rep("Europe",31), rep("Middle East",3), rep("North America",14), rep("Oceania",3), rep("South America",6))) 
+
+## PCoA plot with Ellipse
+## set1 color "#E41A1C" "#377EB8" "#4DAF4A" "#984EA3" "#FF7F00" "#FFFF33" "#A65628"
+betadisp.all <- betadisper(phage2, data$region, add=F)
+
+eigenperc <- round(as.vector(eigenvals(betadisp.all) / sum(eigenvals(betadisp.all)[eigenvals(betadisp.all)>0]))*100, digits=2)
+
+num_var = length(unique(data$region))
+
+# Setup output and plot to file
+pdf('PCoA_all_other_viruses_composition.excl-kvit.pdf',onefile=TRUE)
+
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: all other viruses - excl. KVIT\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+dev.off()
+
+# Plot to screen
+plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=T, cex=1.5, main="PCoA: all other viruses - excl. KVIT\n2016", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+```
+
+## 11. Heatmap - virus phages##
+```{r Heatmap, eval=TRUE}
+library(ComplexHeatmap)
+library(circlize)
+
+# Read input 
+data = read.table("top_abundance/pilot_virus_id_relabundance.phages.top5.tsv", sep="\t", dec = '.',header=TRUE, check.names = F)
+
+# Sorts data on region
+data <- data[order(data$region),]
+
+myvars <- names(data) %in% c("region","country")
+# Transpose matrix and label rows
+phage <- data[!myvars]
+phage <- t(data.frame(phage[,2:ncol(phage)], row.names=phage[,1], check.names=FALSE))
+
+pdf("top5.pilot.pdf",onefile=T,width=20,height=20)
+
+# Plot heatmap
+# col <- colorRamp2)(
+split = factor(rep(c("Africa","Asia","Europe","Middle East","North America","Oceania","South America"), c(13,9,31,3,14,3,6)))
+
+col_fun = colorRamp2(c(0,0.03), c("white","red"))
+
+Heatmap(phage,
+        # Key title
+        name="Abundance",
+        col=col_fun,
+        # Column mods
+        column_title="%s",
+        column_title_gp = gpar(fontsize=7),
+        column_title_side = "top",
+        column_title_rot = 90,
+        column_names_gp = gpar(fontsize=7),
+        # column_names_rot = 180, # Rotates sample names
+        cluster_columns = F,
+        column_split = split,
+        cluster_column_slices = F,
+        column_gap=unit(2,"mm"),
+        # column_title_rot = 270,
+        # Row mods
+        row_names_gp=gpar(fontsize=7),
+        row_title_side = "right",
+        row_title="Phage",
+        row_title_rot = 270,
+        cluster_row_slices = F,
+        cluster_rows = T,
+       
+        border=T,
+        width=unit(20,"cm"),
+        height=unit(5,"cm")
+        )
+  
+
+dev.off()
+
+```
+
+
+## 9. Principal Coordinates Analysis (PCoA) plot for AMR genes - ResFinder##
+```{r PCoA Resistance Genes, eval=TRUE}
+# Read data
+data = read.table("resistance/resfinder_genes_FPKM.tsv", sep="\t", dec = '.',header=TRUE, check.names = F)  
+# Exclude columns with non-numerical values
+myvars <- names(data) %in% c("region","country") 
+data_res <- data[!myvars]
+
+# Subset data
+res <- data.frame(data_res[,2:ncol(data_res)], row.names=data_res[,1], check.names=FALSE)
+
+#Calculate dissimilarity matrix
+res2 <- vegdist(decostand(res ,method = "hellinger"), dist="bray")
+
+label <- data.frame(data[,2:ncol(data)], row.names=data[,1], check.names=FALSE) 
+
+# Allocate number of samples to regions
+metadata = data.frame(sample=rownames(label), label, group=c(rep("Africa",13), rep("Asia",9), rep("Europe",31), rep("Middle East",3), rep("North America",14), rep("Oceania",3), rep("South America",6))) 
+
+# PCoA plot with Ellipse
+# set1 color "#E41A1C" "#377EB8" "#4DAF4A" "#984EA3" "#FF7F00" "#FFFF33" "#A65628"
+betadisp.all <- betadisper(res2, data$region, add=F)
+
+eigenperc <- round(as.vector(eigenvals(betadisp.all) / sum(eigenvals(betadisp.all)[eigenvals(betadisp.all)>0]))*100, digits=2)
+
+num_var = length(unique(data$region))
+
+# Write to PDF
+pdf('pilot_resfinder_distribution.pdf',onefile=TRUE)
+
+plot(betadisp.all,
+     ellipse = T,
+     hull = F,
+     col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"),
+     pch=rep(16,num_var),
+     lty=1,
+     lwd=2,
+     segments=T,
+     seg.col="black",
+     label=T,
+     cex=1.5,
+     main="Resistance genes distribution\n2016",
+     seg.lty=2,
+     seg.lwd=1,
+     xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"),
+     ylab=paste("PCoA2 (", eigenperc[2] , "% variation)"))
+dev.off()
+
+# Print to screen 
+plot(betadisp.all, 
+     ellipse = T,
+     hull = F,
+     col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), 
+     pch=rep(16,num_var), 
+     lty=1, 
+     lwd=2, 
+     segments=T,
+     seg.col="black", 
+     label=T, 
+     cex=1.5, 
+     main="Resistance gene distribution\n2016",
+     seg.lty=2, 
+     seg.lwd=1, 
+     xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), 
+     ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+## Plot without continent labels
+# plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=F, cex=1.5, main="PCoA Resistance Genes", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+
+```
+
+## 9. Principal Coordinates Analysis (PCoA) plot for AMR genes - functionalResistance ##
+```{r PCoA Resistance Genes, eval=TRUE}
+# Read data
+data = read.table("resistance/functionalResistance_genes_FPKM.tsv", sep="\t", dec = '.',header=TRUE, check.names = F)  
+# Exclude columns with non-numerical values
+myvars <- names(data) %in% c("region","country") 
+data_res <- data[!myvars]
+
+# Subset data
+res <- data.frame(data_res[,2:ncol(data_res)], row.names=data_res[,1], check.names=FALSE)
+
+#Calculate dissimilarity matrix
+res2 <- vegdist(decostand(res ,method = "hellinger"), dist="bray")
+
+label <- data.frame(data[,2:ncol(data)], row.names=data[,1], check.names=FALSE) 
+
+# Allocate number of samples to regions
+metadata = data.frame(sample=rownames(label), label, group=c(rep("Africa",13), rep("Asia",9), rep("Europe",31), rep("Middle East",3), rep("North America",14), rep("Oceania",3), rep("South America",6))) 
+
+# PCoA plot with Ellipse
+# set1 color "#E41A1C" "#377EB8" "#4DAF4A" "#984EA3" "#FF7F00" "#FFFF33" "#A65628"
+betadisp.all <- betadisper(res2, data$region, add=F)
+
+eigenperc <- round(as.vector(eigenvals(betadisp.all) / sum(eigenvals(betadisp.all)[eigenvals(betadisp.all)>0]))*100, digits=2)
+
+num_var = length(unique(data$region))
+
+# Write to PDF
+pdf('pilot_functionalResistance_distribution.pdf',onefile=TRUE)
+
+plot(betadisp.all,
+     ellipse = T,
+     hull = F,
+     col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"),
+     pch=rep(16,num_var),
+     lty=1,
+     lwd=2,
+     segments=T,
+     seg.col="black",
+     label=T,
+     cex=1.5,
+     main="Functional resistance genes distribution\n2016",
+     seg.lty=2,
+     seg.lwd=1,
+     xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"),
+     ylab=paste("PCoA2 (", eigenperc[2] , "% variation)"))
+dev.off()
+
+# Print to screen 
+plot(betadisp.all, 
+     ellipse = T,
+     hull = F,
+     col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), 
+     pch=rep(16,num_var), 
+     lty=1, 
+     lwd=2, 
+     segments=T,
+     seg.col="black", 
+     label=T, 
+     cex=1.5, 
+     main="Functional resistance gene distribution\n2016",
+     seg.lty=2, 
+     seg.lwd=1, 
+     xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), 
+     ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+## Plot without continent labels
+# plot(betadisp.all, ellipse = T, hull = F, col=c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628"), pch=rep(16,num_var), lty=1, lwd=2, segments=T, seg.col="black", label=F, cex=1.5, main="PCoA Resistance Genes", seg.lty=2, seg.lwd=1, xlab=paste("PCoA1 (", eigenperc[1] , "% variation)"), ylab=paste("PCoA2 (", eigenperc[2] , "% variation)")) 
+
+
+```
