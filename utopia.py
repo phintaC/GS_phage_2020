@@ -29,8 +29,8 @@ if args.utopia:
 	print("\n############################################################################################################")
 	print("## An imagined community that possesses highly desirable or nearly perfect qualities for its inhabitants! ##")
 	print("############################################################################################################\n")
-	n = round((len(df.columns)-1)*0.01)
-	print(">>> Fetching top 1% across data\nThis corresponds to {} of {}...\n".format(n, len(df.columns)-1))
+	n = round((len(df.columns))*0.01)
+	print(">>> Fetching top 1% across data\nThis corresponds to {} of {}...\n".format(n, len(df.columns)))
 
 	# Calculate mean of all abundances across samples
 	df_mean = df.mean()
@@ -66,7 +66,7 @@ if not args.percent:
 
 	# Find the N most abundant organisms across dataset (mean value)
 	if args.across:
-		print("\n>>> Finding top {} of {} organisms across dataset\n".format(args.top,len(df.columns)-1))
+		print("\n>>> Finding top {} of {} organisms across dataset\n".format(args.top,len(df.columns)))
 		# Calculate mean of all abundances across samples
 		df_mean = df.mean()
 		df_max = df_mean.idxmax()
@@ -85,7 +85,7 @@ if not args.percent:
 
  	# Find the N most abundant organisms for each sample
 	else:
-		print("\n>>> Fetching top {} of {} organisms for each sample\n".format(args.top, len(df.columns)-1))
+		print("\n>>> Fetching top {} of {} organisms for each sample\n".format(args.top, len(df.columns)))
 		# Returns top N for each line in an aggregated list 
 		df_top = df.apply(pd.Series.nlargest, axis=1,n=n)
 		row_names = df_top.columns.tolist() # Not row names, as df is not transposed. 
@@ -100,16 +100,16 @@ if not args.percent:
 ###########################################################################################
 ### Find top N % of species ### 
 elif args.percent:
-	n = round((len(df.columns)-1) * (args.top/100))
+	n = round((len(df.columns)) * (args.top/100))
 
 	# Sanity check that the number of organisms are not exceeded
-	if n >= len(df.columns)-1:
-		print("{} equals or exceeds number of organisms in dataset ({})... Terminating!".format(n,len(df.columns)-1))
+	if n >= len(df.columns):
+		print("{} equals or exceeds number of organisms in dataset ({})... Terminating!".format(n,len(df.columns)))
 		sys.exit(0)
 
 	# Find the N% most abundant organisms across dataset based on mean
 	if args.across:
-		print("\n>>> Fetching top {}% across data\nThis corresponds to {} of {} organisms\n".format(args.top,n,len(df.columns)-1))
+		print("\n>>> Fetching top {}% across data\nThis corresponds to {} of {} organisms\n".format(args.top,n,len(df.columns)))
 		# Calculate mean of all abundances across samples
 		df_mean = df.mean()
 		df_max = df_mean.idxmax()
@@ -129,7 +129,7 @@ elif args.percent:
 
 	# Find the N% most abundant organisms across each sample
 	else:
-		print("\n>>> Fetching top {}% for each sample\nThis corresponds to {} of {} organisms for each sample".format(args.top,n,len(df.columns)-1))
+		print("\n>>> Fetching top {}% for each sample\nThis corresponds to {} of {} organisms for each sample".format(args.top,n,len(df.columns)))
 		# Find the top N for each line and make list of accessions of all 
 		df_top = df.apply(pd.Series.nlargest, axis=1,n=n)
 		row_names = df_top.columns.tolist() # Not row names, as df is not transposed. 
