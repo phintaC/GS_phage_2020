@@ -2,6 +2,11 @@
 # annotate.py
 import sys,os,csv,argparse,re
 ###############################################################################################
+#@author Josephine Strange
+#@date	08May2020
+#@version	2.0
+# Generalized sorting to include sample when region is not being annotated. 
+###############################################################################################
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-i", "--input", nargs="+", help="Query file", required=True)
@@ -61,10 +66,10 @@ def regionCount(datamatrix):
 
 	return africa,asia,europe,mideast,namerica,oceania,samerica
 
-def regionSort(datamatrix):
+def sort(datamatrix,col):
 	# Sort the output alphabetically on region
 	head = datamatrix[0]
-	datamatrix = sorted(datamatrix[1:], key=lambda x: x[1])
+	datamatrix = sorted(datamatrix[1:], key=lambda x: x[col])
 	datamatrix.insert(0,head)	
 	return datamatrix
 
@@ -72,9 +77,8 @@ def fileWrite(directory, file, datamatrix):
 	'''Writes the annotated datamatrix to file'''
 	if not os.path.exists(directory):
 		os.mkdir(directory)
-		outname = args.output + os.path.splitext(file) + ".tsv"
-	else:
-		outname = os.path.splitext(file)[0] + ".tsv"
+	
+	outname = directory + "/" + os.path.basename(os.path.splitext(file)[0]) + ".tsv"
 
 	try:
 		with open(outname,"w+") as outfile:
@@ -216,7 +220,7 @@ ctryRegDict = dict({"ALB":["Albania","Europe"],"ARE":["United Arab Emirates","Mi
 	"HKG":["Hong Kong","Asia"],"HRV":["Croatia","Europe"],"HUN":["Hungary","Europe"],\
 	"IND":["India","Asia"],"IRL":["Ireland","Europe"],"IRN":["Islamic Republic of Iran","Middle East"],"ISL":["Iceland","Europe"],"ISR":["Israel","Middle East"],"ITA":["Italy","Europe"],\
 	"JPN":["Japan", "Asia"],\
-	"KAZ":["Kazakhstan","Asia"],"KEN":["Kenya","Africa"],"KHM":["Cambodia","Africa"],"KOR":["South Korea","Asia"],"KWT":["Kuwait","Middle East"],\
+	"KAZ":["Kazakhstan","Asia"],"KEN":["Kenya","Africa"],"KHM":["Cambodia","Asia"],"KOR":["South Korea","Asia"],"KWT":["Kuwait","Middle East"],\
 	"LBN":["Lebanon","Middle East"],"LCA":["Saint Lucia","North America"],"LKA":["Sri Lanka","Asia"],"LTU":["Lithuania","Europe"],"LUX":["Luxembourg","Europe"],"LVA":["Latvia", "Europe"],\
 	"MAR":["Morocco","Africa"],"MDA":["Moldova","Europe"],"MDG":["Madagascar","Africa"],"MKD":["Republic of Macedonia","Europe"],"MLT":["Malta","Europe"],"MNE":["Montenegro","Europe"],"MOZ":["Mozambique","Africa"],\
 	"MUS":["Mauritius","Africa"],"MWI":["Malawi","Africa"],"MYS":["Malaysia","Asia"],\
@@ -226,7 +230,7 @@ ctryRegDict = dict({"ALB":["Albania","Europe"],"ARE":["United Arab Emirates","Mi
 	"VNM":["Viet Nam","Asia"],\
 	"TCD":["Chad","Africa"],"TGO":["Togo","Africa"],"THA":["Thailand","Asia"],"TUR":["Turkey","Middle East"],"TWN":["Taiwan","Asia"],"TZA":["Tanzania","Africa"],\
 	"UGA":["Uganda","Africa"],"USA":["United States of America","North America"],"URY":["Uruguay", "South America"],\
-	"XK":["Kosova", "Europe"],\
+	"XK-":["Kosova", "Europe"],\
 	"ZAF":["South Africa","Africa"],"ZMB":["Zambia","Africa"]})
 
 # Is Nicaragua, Guatemala North America?
@@ -252,6 +256,12 @@ if args.pilot:
 		datamatrix = setupMatrix(file)
 
 		###############################################################################################
+		# Update sample name to display name
+		if args.sample:
+			sys.stdout.write(">>> Updating sample names...\n")
+			datamatrix = updateDisplayName(datamatrix, displayNameDict)
+
+		###############################################################################################
 		# Annotate region		
 		if args.region:
 			sys.stdout.write(">>> Annotating region...\n")
@@ -263,11 +273,6 @@ if args.pilot:
 			sys.stdout.write(">>> Annotating country...\n")
 			datamatrix = annotateCountry(datamatrix, ctryRegDict)
 
-		###############################################################################################
-		# Update sample name to display name
-		if args.sample:
-			sys.stdout.write(">>> Updating sample names...\n")
-			datamatrix = updateDisplayName(datamatrix, displayNameDict)
 	
 		###############################################################################################
 		# Annotate accession numbers with species
@@ -290,11 +295,17 @@ if args.pilot:
 		###############################################################################################
 		# Sort the datamatrix according to region
 		if args.sort:
-			sys.stdout.write(">>> Sorting matrix on region...\n")
-			if datamatrix[0][1] == "region":
-				datamatrix = regionSort(datamatrix)
+			if args.region:
+				sys.stdout.write(">>> Sorting matrix on region...\n")
+				if datamatrix[0][1] == "region":
+					datamatrix = sort(datamatrix,1)
+				else:
+					sys.stdout.write("Region not annotated... Skipping!\n")
 			else:
-				sys.stdout.write("Region not annotated... Skipping!\n")
+				# Sort on sample name
+				sys.stdout.write(">>> Sorting matrix on sample...\n")
+				datamatrix = sort(datamatrix,0)
+
 
 		###############################################################################################
 		# Write to file
@@ -400,12 +411,15 @@ else:
 		###############################################################################################
 		# Sort the datamatrix
 		if args.sort:
-			sys.stdout.write(">>> Sorting matrix on region...\n")
-			if datamatrix[0][1] == "region":
-				datamatrix = regionSort(datamatrix)
+			if args.region:
+				sys.stdout.write(">>> Sorting matrix on region...\n")
+				if datamatrix[0][1] == "region":
+					datamatrix = sort(datamatrix,1)
+				else:
+					sys.stdout.write("Region not annotated... Skipping!\n")
 			else:
-				sys.stdout.write("Region not annotated... Skipping!\n")
-		
+				sys.stdout.write(">>> Sorting on sample...\n")
+				datamatrix = sort(datamatrix,0)
 		###############################################################################################
 		# Write to file
 		sys.stdout.write(">>> Writing to file...\n")
