@@ -18,7 +18,7 @@ parser.add_argument("--region", help="Select to annotate region", action="store_
 parser.add_argument("--country", help="Select to annotate country", action="store_true")
 parser.add_argument("--sample", help="Select to update sample names", action="store_true")
 parser.add_argument("--pilot", help="Select to indicate PILOT study", action="store_true")
-
+parser.add_argument("--income", help="Annotates dataset with categorical income classifications", action="store_true")
 
 args = parser.parse_args()
 
@@ -137,12 +137,14 @@ def setupSpcDict(file):
 				# Create dict
 				if accession not in spcDict:
 					spcDict[accession] = [species]
-#				else:
-#					sys.stdout.write("### Warning! ###\n\"{}\" annotated with:\n".format(accession))
-#					for item in spcDict[accession]:
-#						sys.stdout.write(item + "\n")
-#					sys.stdout.write("################\n\n")
-#					spcDict[accession] += [species]
+
+	if "custom_hosts.txt" in file:
+		for line in speciesdata:
+			if line == "":
+				pass
+			else:
+				line = line.rstrip().split("\t")
+				spcDict[line[0]] = [line[1],line[2]]
 
 	return spcDict
 
@@ -187,24 +189,35 @@ def annotateRegion(datamatrix,ctryRegDict):
 def annotateCountry(datamatrix, ctryRegDict):
 	''' Annotates datamatrix with country '''
 	# If region is already annotated
-	if datamatrix[0][1] == "region":
-		sys.stdout.write("Annotating country in column 3\n")
-		if datamatrix[0][2] != "country":
-			datamatrix[0].insert(2,"country")
-			for row in datamatrix[1:]:
-				row.insert(2, ctryRegDict[row[0][:3]][0])
+	annotations = set(["sample","region"])
+	col = 0
+	for item in datamatrix[0]:
+		if item in annotations:
+			col += 1
 		else:
-			sys.stdout.write("Country already annotated... Skipping!\n")
-	# If region is not already annotated
-	else:
-		if datamatrix[0][1] != "country":
-			sys.stdout.write("Annotating country in column 2\n")
-			datamatrix[0].insert(1,"country")
-			for row in datamatrix[1:]:
-				row.insert(1,ctry_reg[row[0][:3]][0])
-		else:
-			sys.stdout.write("Country already annotated... Skipping!\n")
+			if datamatrix[0][col] != "country":
+				datamatrix[0].insert(col,"country")
+				for row in datamatrix[1:]:
+					row.insert(col, ctryRegDict[row[0][:3]][0])
 
+	sys.stdout.write("Annotated country in column {}\n".format(col+1))
+	return datamatrix
+
+def annotateIncome(datamatrix, incomeDict):
+	''' Annotates a dataset with income class '''
+	# Places the income annotation in the last column that is not a phage
+	col = 0
+	annotations = set(["sample","region","country"])
+	for item in datamatrix[0]:
+		if item in annotations:
+			col += 1
+		else:
+			if datamatrix[0][col] != "income_class":
+				datamatrix[0].insert(col,"income_class")
+				for row in datamatrix[1:]:
+					row.insert(col, incomeDict[row[0]])
+
+	sys.stdout.write("Annotated income classification in column {}\n".format(col+1))
 	return datamatrix
 ###############################################################################################
 # Dict containing country [0] and region [1] annotation
@@ -249,6 +262,17 @@ if args.pilot:
 	"SVN":"SVN-38", "XK":"XK-60", "IRN":"IRN-12", "ISR":"ISR-29", "TUR":"TUR-46",\
 	"NZL":"NZL-56", "COL":"COL-2", "PER":"PER-35"})
 
+	incomeDict = dict({"ALB-17":"middle","AUS-18":"high","AUS-18a":"high","AUT-70":"high","BGR-66":"middle","BRA-53":"middle","BRA-53a":"middle",\
+		"BWA-19":"middle","CAN-22":"high","CAN-22a":"high","CAN-22b":"high","CAN-22c":"high","CHE-67":"high","CHN-64":"middle","CIV-13":"middle","CZE-23":"high",\
+		"DEU-27":"high","DNK-71-RL":"high","DNK-71-RA":"high","DNK-71-RD":"high", "ECU-14":"middle", "ECU-14a":"middle","ESP-75":"high",\
+		"ETH-24":"low","FIN-25":"high","GEO-59":"middle","GHA-4":"middle","HRV-68":"middle","HUN-61":"high","IND-11":"middle","IRL-69":"high",\
+		"IRN-12":"middle","ISL-28":"high","ISR-29":"high","ITA-30":"high","KAZ-6":"middle","KEN-72":"middle","KHM-21":"middle","LKA-40":"middle",\
+		"LUX-32":"high","LVA-31":"high","MDA-65":"middle","MKD-62":"middle","MLT-63":"high","MYS-54":"middle","NGA-50":"middle","NLD-43":"high",\
+		"NOR-34":"high","NPL-33":"low","NZL-56":"high","PAK-7":"middle","PER-35":"middle","POL-36":"high","SEN-8":"low","SGP-52":"high",\
+		"SRB-37":"middle","SVK-9":"high","SVN-38":"high","SWE-41":"high","SWE-41a":"high","TGO-44":"low","TUR-46":"middle","TZA-15":"low",\
+		"USA-74":"high","USA-74a":"high","USA-74b":"high","USA-74c":"high","USA-74d":"high","USA-74e":"high","USA-74f":"high",\
+		"USA-74g":"high","USA-74h":"high","USA-74i":"high","VNM-48":"middle","XK-60":"middle","ZAF-39":"middle","ZMB-49":"middle","ZMB-49b":"middle"})
+
 	###############################################################################################
 	for file in files:
 		sys.stdout.write("######### Working on {} #########\n".format(os.path.basename(file)))
@@ -273,6 +297,10 @@ if args.pilot:
 			sys.stdout.write(">>> Annotating country...\n")
 			datamatrix = annotateCountry(datamatrix, ctryRegDict)
 
+		###############################################################################################
+		if args.income:
+			sys.stdout.write(">>> Annotating income classification...\n")
+			datamatrix = annotateIncome(datamatrix,incomeDict)
 	
 		###############################################################################################
 		# Annotate accession numbers with species
